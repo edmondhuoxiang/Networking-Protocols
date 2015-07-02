@@ -1,0 +1,8 @@
+[SUCCESS] Pinging from the client to any of the router’s interfaces (192.168.2.1, 172.64.3.1, 10.0.1.1) [1.5]:  
+[SUCCESS] Tracerouting from the client to any of the router’s interfaces [1]:
+[SUCCESS] Pinging from the client to any of the app servers (192.168.2.2, 172.64.3.10) [1]: 
+[SUCCESS] Tracerouting from the client to any of the app servers [1]: 
+[SUCCESS] Downloading a file using HTTP from one of the app servers The majority of the code which makes the router work is provided for you. [1.5]: 
+Parameter: 
+Earned score: 
+Total score: 

@@ -1,0 +1,307 @@
+#!/bin/bash
+
+
+usage="Usage: hw5_score <username> <score file>"
+email_address="<huoxiang5659@gmail.com>"
+
+if [ $# != 2 ]; then
+	echo $usage
+	exit 1
+fi
+
+score=0
+rm -rf $1
+git clone git@git.uicbits.net:cs450-f13/$1
+cd $1
+cd hw5
+rm $2
+rm hw5
+make
+#collecting="/home/edmondhuo/grading_hw5.txt"
+
+################################
+#verify signature
+
+REPLY=`git show 201310231500_hw5 | tr " " "\n"`
+email=$(echo $REPLY | cut -f6 -d " ")
+factor=0
+if [ "$REPLY" != "" ]; then
+	if [ "$email" != "$email_address" ]; then
+		echo "[FAILED] Verify signature? [0]:0" >> $2
+		echo "Aborting program testing as unverified signature" >> $2
+		echo "Total score: 0" >> $2
+		exit 0
+	fi
+	DIFF=`git diff 201310231500_hw5 -- *.c`
+	if [ "$DIFF" == "" ]; then
+		factor=1.0
+		echo "No changes after tag 201310231500_hw5 on source file"
+		echo "Set factor as "$factor
+	fi
+fi
+
+if [ "$factor" == 0 ]; then
+	REPLY=`git show 201310240300_hw5 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d " ")
+	factor=0
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then
+			echo "[FAILED] Verify signature?[0]:0" >> $2
+			echo "Aborting program testing as unverified signature" >> $2
+			echo "Total score: 0" >> $2
+			exit 0
+		fi
+		DIFF=`git diff 201310240300_hw5 -- *.c`
+		if [ "$DIFF" == "" ]; then
+			factor=0.9
+			echo "No changes after tag 201310240300_hw5 on source file"
+			echo "Set factor as "$factor
+		fi
+	fi
+fi
+
+
+if [ "$factor" == 0 ]; then
+	REPLY=`git show 201310241500_hw5 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d " ")
+	factor=0
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then
+			echo "[FAILED] Verify signature?[0]:0" >> $2
+			echo "Aborting program testing as unverified signature" >> $2
+			echo "Total score: 0" >> $2
+			exit 0
+		fi
+		DIFF=`git diff 201310241500_hw5 -- *.c`
+		if [ "$DIFF" == "" ]; then
+			factor=0.75
+			echo "No changes after tag 201310241500_hw5 on source file"
+			echo "Set factor as "$factor
+		fi
+	fi
+fi
+
+if [ "$factor" == 0 ]; then
+	REPLY=`git show 201310251500_hw5 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d " ")
+	factor=0
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then
+			echo "[FAILED] Verify signature?[0]:0" >> $2
+			echo "Aborting program testing as unverified signature" >> $2
+			echo "Total score: 0" >> $2
+			exit 0
+		fi
+		DIFF=`git diff 201310251500_hw5 -- *.c`
+		if [ "$DIFF" == "" ]; then
+			factor=0.5
+			echo "No changes after 201310251500_hw5 on source file"
+			echo "Set factor as "$factor
+		fi
+	fi
+fi
+
+##################################
+nsips=(128.248.7.50 128.248.171.50 128.248.2.50)
+
+for nsip in ${nsips[@]}; do
+    sudo iptables -D INPUT -s $nsip -j DROP
+    sudo iptables -D OUTPUT -d $nsip -j DROP
+done
+###################################
+
+sudo ./hw5 53 &
+
+sleep 1
+
+response=`dig @localhost www.uic.edu`
+stat=`echo ${response#*\, status:} | awk -F"," '{print $1}'`
+tmp=`echo ${response#*\ANSWER SECTION:}`
+answer_section=`echo ${tmp%\;; AUTHORITY*}`
+ip=`echo $answer_section | grep "128.248.156.31"`
+
+tmp=`echo ${response#*\ADDITIONAL SECTION:}`
+additional_section=`echo ${tmp%\;; Query*}`
+ns1=`echo $additional_section | grep "128.248.2.50"`
+ns2=`echo $additional_section | grep "128.248.7.50"`
+ns3=`echo $additional_section | grep "128.248.171.50"`
+ns4=`echo $additional_section | grep "128.174.45.64"`
+
+if [ "$ip" != "" ] && [ "$ns1" != "" ] && [ "$ns2" != "" ] && [ "$ns3" != "" ] && [ "$ns4" != "" ]; then
+	echo "[SUCCESS] resolve www.uic.edu with presenting all glue records? [1]:1" >> $2
+	score=`echo $score | awk '{print $1+1}'`
+else
+	echo "[FAILED] resolve www.uic.edu with presenting all glue records? [1]:0" >> $2
+fi
+
+pid=`pgrep -f "hw5 53"`
+if [ "$pid" != "" ]; then
+	sudo kill -9 $pid
+fi
+
+##################################
+
+sudo ./hw5 53 &
+
+sleep 1
+
+response=`for((i=0; i<10; i++));do  { sleep 1; dig @edmond.uicbits.net www.uic.edu; } & done;wait`
+count=`echo $response | grep -o "128.248.156.31"  |wc -l`
+
+if [ "$count" == "10" ]; then
+	echo "[SECCUESS] resolve 10 quereis for www.uic.edu simultaneously? [1]:1" >> $2
+	score=`echo $score | awk '{print $1+1}'`
+else
+	echo "[FAILED] resolve 10 quereis for www.uic.edu simultaneously? [1]:0" >> $2
+fi
+
+pid=`pgrep -f "hw5 53"`
+if [ "$pid" != "" ]; then
+	sudo kill -9 $pid
+fi
+
+##################################
+
+###################################
+
+sudo ./hw5 53 &
+
+sleep 1
+
+response=`dig @localhost google.cn`
+stat=`echo ${response#*\, status:} | awk -F"," '{print $1}'`
+tmp=`echo ${response#*\ANSWER SECTION:}`
+answer_section=`echo ${tmp%%\ ;; *}`
+ip=`echo $answer_section | awk '{ print $5}' | grep "."`
+answer=`echo $response | grep "ANSWER SECTION:"`
+
+if [ "$ip" != "" ] && [ "$answer" != "" ]; then
+	echo "[SUCCESS] resolve google.cn? [1]:1" >> $2
+	score=`echo $score | awk '{print $1+1}'`
+else
+	echo "[FAILED] resolve google.cn? [1]:0" >> $2
+fi
+
+pid=`pgrep -f "hw5 53"`
+if [ "$pid" != "" ]; then
+	sudo kill -9 $pid
+fi
+
+##################################
+
+sudo ./hw5 53 &
+
+sleep 1
+
+response=`for((i=0; i<10; i++));do  { sleep 1; dig @edmond.uicbits.net google.cn; } & done;wait`
+count=`echo $response | grep -o "ANSWER SECTION:"  |wc -l`
+
+if [ "$count" == "10" ]; then
+	echo "[SECCUESS] resolve 10 quereis for google.cn simultaneously? [1]:1" >> $2
+	score=`echo $score | awk '{print $1+1}'`
+else
+	echo "[FAILED] resolve 10 quereis for google.cn simultaneously? [1]:0" >> $2
+fi
+
+pid=`pgrep -f "hw5 53"`
+if [ "$pid" != "" ]; then
+	sudo kill -9 $pid
+fi
+
+##################################
+
+###################################
+
+sudo ./hw5 53 &
+
+sleep 1
+
+response=`dig @localhost www.domain.invalid`
+stat=`echo ${response#*\, status:} | awk -F"," '{print $1}'`
+tmp=`echo ${response#*\AUTHORITY SECTION:}`
+auth_section=`echo ${tmp%\;; Query*} | grep "SOA"`
+
+if [ "$stat" == "NXDOMAIN" ] && [ "$auth_section" != "" ]; then
+	echo "[SUCCESS] resolve www.domain.invalid? [1]:1" >> $2
+	score=`echo $score | awk '{print $1+1}'`
+else
+	echo "[FAILED] resolve www.domain.invalid? [1]:0" >> $2
+fi
+
+pid=`pgrep -f "hw5 53"`
+if [ "$pid" != "" ]; then
+	sudo kill -9 $pid
+fi
+
+##################################
+
+sudo ./hw5 53 &
+
+sleep 1
+
+response=`for((i=0; i<10; i++));do  { sleep 1; dig @localhost www.domain.invalid; } & done;wait`
+count=`echo $response | grep -o "AUTHORITY SECTION:"  |wc -l`
+
+if [ "$count" == "10" ]; then
+	echo "[SECCUESS] resolve 10 quereis for www.domain.invalid simultaneously? [1]:1" >> $2
+	score=`echo $score | awk '{print $1+1}'`
+else
+	echo "[FAILED] resolve 10 quereis for www.domain.invalid simultaneously? [1]:0" >> $2
+fi
+
+pid=`pgrep -f "hw5 53"`
+if [ "$pid" != "" ]; then
+	sudo kill -9 $pid
+fi
+
+##################################
+
+
+sudo ./hw5 53 &
+
+sleep 1
+
+response1=`dig @localhost cs.uic.edu`
+stat1=`echo ${response1#*\, status:} | awk -F"," '{print $1}'`
+tmp=`echo ${response1#*\ANSWER SECTION:}`
+answer_section=`echo ${tmp%%\ ;; *}`
+ip1=`echo $answer_section | grep "131.193.32.29"`
+
+for nsip in ${nsips[@]}; do
+	sudo iptables -A INPUT -s $nsip -j DROP
+	sudo iptables -A OUTPUT -d $nsip -j DROP
+done
+
+response2=`dig @localhost cs.uic.edu`
+stat2=`echo ${response2#*\, status:} | awk -F"," '{print $1}'`
+tmp=`echo ${response2#*\ANSWER SECTION:}`
+answer_section=`echo ${tmp%%\ ;; *}`
+ip2=`echo $answer_section | grep "131.193.32.29"`
+if [ "$ip1" != "" ] && [ "$ip2" != "" ] && [ "$stat1"=="NOERROR" ] && [ "$stat2"=="NOERROR" ]; then
+    echo "[SECCUESS] cached entries and use it to response? [2]:2" >> $2
+	score=`echo $score | awk '{print $1+2}'`
+else
+    echo "[FAILED] cashed entries and use it to response? [2]:0" >> $2
+fi
+
+for nsip in ${nsips[@]}; do
+	sudo iptables -D INPUT -s $nsip -j DROP
+	sudo iptables -D OUTPUT -d $nsip -j DROP
+done
+
+pid=`pgrep -f "hw5 53"`
+if [ "$pid" != "" ]; then
+    sudo kill -9 $pid
+fi
+
+##################################
+echo "Factor: $factor" >> $2
+echo "Earned score: $score" >> $2
+t_score=`expr "$factor * $score"|bc`
+echo "Total score: $t_score" >> $2
+
+#echo $1 $t_score >> $collecting
+#git checkout -b grading_hw5
+#git add $2
+#git commit -a -m "added grading_hw5.txt on branch grading_hw5"
+#git push -u origin grading_hw5

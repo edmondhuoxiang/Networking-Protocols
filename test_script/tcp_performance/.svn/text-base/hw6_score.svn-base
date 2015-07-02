@@ -1,0 +1,114 @@
+#!/bin/bash
+
+usage="Usage: hw6_score <username> <base port> <score file> [reps]"
+
+if [ $# -lt 3 ]; then
+	echo $usage
+	exit 1
+fi
+
+time=${4:-"9"}
+
+score=0
+
+mkdir -p $1
+cd $1
+
+svn co svn://cs450.cs.uic.edu/s13/$1/hw6
+
+if [ -d hw6 ];then
+	cd hw6
+	rm $3
+	cp ../../10000lines .
+	cp ../../ship.jpg .
+	cp ../../hw6_sender.c .
+	cp ../../hw6_receiver.c .
+	cp ../../kill_controller .
+	cp ../../rel_tcp.py .
+else
+	echo "$1 Not submitted..."
+	echo "$1 Not submitted..." >$3
+	echo "Total score: 0" >>$3
+	exit 1
+fi
+make clean
+make
+
+############################################
+delay=(10 10 10 10 10 10)
+loss=(0 5 0 5 0 5)
+buffer=(2 2 10 10 100 100)
+tput=(14 2.1 80 15 85 10) #acceptable lower limit of throughput in kB/s
+timeout=(30 80 20 30 50 150 ) #timeout is approx. 50% more than corresponding lower limit of throughput
+
+for i in 0 1 2 3 4 5; do
+#for i in 2;do
+	echo "test case $i"
+	counter=0
+	thput=""
+
+	if [ $i -le 3 ]; then #first 4 test-cases use landscape.jpg
+		file="10000lines"
+		md5_orig=b20b67cb20d37ad15b2abd05cf275db6
+	else
+		file="ship.jpg" #last 2 test-cases use bighorn.jpg
+		md5_orig=5ec223e327f99f9f1a9c18885ce3cf38
+
+	fi
+
+	echo "$file $md5_orig"
+
+	buffer_size=${buffer[$i]}
+	packet_loss=${loss[$i]}
+	delay_ms=${delay[$i]}
+	queue=${buffer[$i]}
+    timeout=${timeout[$i]}
+	iteration=3;
+	
+	sudo rm RECVD_FILE* sender_output*
+	for j in `seq 0 $time`; do
+	#for j in 0 1; do
+		base_port=$(($2+$i*40))
+
+		echo "timeout is $timeout"
+		sudo timeout $timeout ./rel_tcp.py --loss $packet_loss --delay $delay_ms --maxq $queue --filename $file --port $base_port --case $j
+		./kill_controller
+
+		wait
+	done	
+
+	for j in `seq 0 $time`; do
+#	for j in 0 1;do
+
+		md5_recv=`md5sum "RECVD_FILE$j" | awk '{print $1}'`
+		echo $md5_recv
+
+		throughput=`cat sender_output$j | grep -i "KB/s" | awk '{printf "%0.1f\n", $(NF-1)}'`
+		
+		if [ "$md5_recv" == "$md5_orig" ]; then
+			thput=$thput" "$throughput
+			tput_ok=`echo $throughput ${tput[$i]} | awk '{if($1>=$2) {print 1} else {print 0}}'`
+			if [ "$tput_ok" -eq "1" ]; then
+				counter=$(($counter+1))
+			fi
+		else
+			thput=$thput" 0"
+		fi
+
+	done
+	
+	echo $counter
+	mean=`echo $thput | sed 's/ /\n/g' | awk '{sum+=$1; count++} END{print sum/count}'`
+	if [ $counter -ge 8 ]; then
+		echo "[SUCCESS] buf=$buffer_size loss=$packet_loss% threshold=${tput[$i]} [1]: 1 [throughput(kB/s)=$thput] mean=$mean kB/s" >> $3
+		score=`echo $score | awk '{print $1+1}'`
+	elif [ $counter -lt 8 ] && [ $counter -ge 5 ]; then
+		echo "[PARTIAL] buf=$buffer_size loss=$packet_loss% threshold=${tput[$i]} [1]: 0.5 [throughput(kB/s)=$thput] mean=$mean kB/s" >> $3
+		score=`echo $score | awk '{print $1+0.5}'`
+	else
+		echo "[FAILED] buf=$buffer_size loss=$packet_loss% threshold=${tput[$i]} [1]: 0 [throughput (kB/s)=$thput] mean=$mean kB/s" >> $3
+	fi
+done
+############################################
+sudo rm RECVD_FILE* sender_output*
+echo "Total score: $score" >> $3

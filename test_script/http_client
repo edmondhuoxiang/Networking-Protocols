@@ -1,0 +1,325 @@
+#!/bin/bash
+
+usage="Usage: hw1_score <username> <output file> <score file>"
+email_address="<huoxiang5659@gmail.com>"
+if [ $# != 3 ]; then
+	echo $usage
+	exit 1
+fi
+timeout=10
+score=0
+rm -rf $1
+git clone git@git.uicbits.net:cs450-f13/$1
+cd $1
+cd hw1
+rm $2 $3
+
+collecting="/home/edmondhuo/Grading_hw1.txt"
+files=`ls`
+
+if [ "$files" != "" ]; then 
+	echo "[SUCCESS] files submitted using git? [1.5]: 1.5" >> $3
+	score=`echo $score | awk '{print $1+1.5}'`
+else
+	echo "[FAILED] files submitted using git? [1.5]: 0" >> $3
+	echo "Aborting program testing as nothing submitted..." >> $3
+	echo "Total score: 0" >> $3	
+	exit 0
+fi
+
+host=`grep "Host: " hw1.c`
+
+#verify signature
+REPLY=`git show 201309041500_hw1 | tr " " "\n"` 
+email=$(echo $REPLY | cut -f6 -d" ")
+parameter=0
+if [ "$REPLY" != "" ]; then
+	if [ "$email" != "$email_address" ]; then
+		echo "[FAILED] Verify signature? [0]:0" >> $3
+		echo "Aborting program testing as unverified signature" >> $3
+		echo "Total score: 0" >> $3
+		exit 0
+	fi
+	DIFF=`git diff 201309041500_hw1 -- *.c`
+	if [ "$DIFF" == "" ]; then 
+		parameter=1.1
+		echo "No changes after tag 201309041500_hw1 on source file" >> $2
+		echo "Set parameter as "$parameter >> $2
+	fi
+fi
+
+if [ "$parameter" == 0 ]; then
+	REPLY=`git show 201309051500_hw1 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d" ")
+	key=$(echo $REPLY | cut -f23-29 -d" ")
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then	
+			echo "[FAILED] Verify signature? [0]:0" >> $3
+			echo "Aborting program testing as unverified signature" >> $3
+			echo "Total score: 0" >> $3
+			exit 0
+		fi
+		DIFF=`git diff 201309051500_hw1 -- *.c`
+		if [ "$DIFF" == "" ]; then
+			parameter=1.0
+			echo "No changes after tag 201309051500_hw1 on source file" >> $2
+			echo "Set parameter as "$parameter >> $2
+		fi
+	fi
+fi
+
+if [ "$parameter" == 0 ]; then
+	REPLY=`git show 201309060300_hw1 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d" ")
+	key=$(echo $REPLY | cut -f23-29 -d" ")
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then	
+			echo "[FAILED] Verify signature? [0]:0" >> $3
+			echo "Aborting program testing as unverified signature" >> $3
+			echo "Total score: 0" >> $3
+			exit 0
+		fi
+		DIFF=`git diff 201309060300_hw1 -- *.c`
+		if [ "$DIFF" == "" ]; then
+			parameter=0.9
+			echo "No changes after tag 201309060300_hw1 on source file" >> $2
+			echo "Set parameter as "$parameter >> $2
+		fi
+	fi
+fi
+
+
+if [ "$parameter" == 0 ]; then
+	REPLY=`git show 201309061500_hw1 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d" ")
+	key=$(echo $REPLY | cut -f23-29 -d" ")
+	if [ "$REPLY" != "" ]; then
+		if [ $email != $email_address ]; then	
+			echo "[FAILED] Verify signature? [0]:0" >> $3
+			echo "Aborting program testing as unverified signature" >> $3
+			echo "Total score: 0" >> $3
+			exit 0
+		fi
+		DIFF=`git diff 201309061500_hw1 -- *.c`
+		if [ "$DIFF" == "" ]; then
+			parameter=0.75
+			echo "No changes after tag 201309061500_hw1 on source file" >> $2
+			echo "Set parameter as "$parameter >> $2
+		fi
+	fi
+fi
+
+if [ "$parameter" == 0 ]; then
+	REPLY=`git show 201309071500_hw1 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d" ")
+	key=$(echo $REPLY | cut -f23-29 -d" ")
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then	
+			echo "[FAILED] Verify signature? [0]:0" >> $3
+			echo "Aborting program testing as unverified signature" >> $3
+			echo "Total score: 0" >> $3
+			exit 0
+		fi
+		DIFF=`git diff 201309071500_hw1 -- *.c`
+		if [ "$DIFF" == "" ]; then
+			parameter=0.5
+			echo "No changes after tag 201309071500_hw1 on source file" >> $2
+			echo "Set parameter as "$parameter >> $2
+		fi
+	fi
+fi
+
+make clean
+make
+if [ -f index.html ]; then
+	rm index.html
+fi
+######################################## 
+timeout $timeout ./hw1 http://www.google.com >> $2 2>&1
+if [ -f index.html ]; then
+	echo "[SUCCESS] index.html created for http://www.google.com? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else 
+	echo "[FAILED] index.html created for http://www.google.com? [0.25]: 0" >> $3 
+fi
+rm index.html
+
+timeout $timeout ./hw1 http://ipv6.google.com >> $2 2>&1
+if [ -f index.html ]; then
+	echo "[SUCCESS] index.html created for http://ipv6.google.com? [0.5]: 0.5" >> $3
+	score=`echo $score | awk '{print $1+0.5}'`
+else
+	echo "[FAILED] index.html created for http://ipv6.google.com? [0.5]: 0.5" >> $3
+fi
+rm index.html
+
+timeout $timeout ./hw1 http://library.corporate-ir.net/library/17/176/176060/mediaitems/93/a.com_logo_RGB.jpg >> $2 2>&1
+if [ "$host" != "" ]; then
+	if [ -f a.com_logo_RGB.jpg ]; then
+		echo "[SUCCESS] a.com_logo_RGB.jpg created for http://library.corporate-ir.net/library/17/176/176060/mediaitems/93/a.com_logo_RGB.jpg? [0.25]: 0.25" >> $3
+		score=`echo $score | awk '{print $1+0.25}'`
+	else 
+		echo "[FAILED] a.com_logo_RGB.jpg created for http://library.corporate-ir.net/library/17/176/176060/mediaitems/93/a.com_logo_RGB.jpg? [0.25]: 0" >> $3
+	fi
+else
+	if [ $? != 0 ]; then 
+		echo "[SUCCESS] exit with error for http://library.corporate-ir.net/library/17/176/176060/mediaitems/93/a.com_logo_RGB.jpg? [0.75]: 0.75" >> $3
+		score=`echo $score | awk '{print $1+0.75}'`
+	else
+		echo "[FAILED] exit with error for http://library.corporate-ir.net/library/17/176/176060/mediaitems/93/a.com_logo_RGB.jpg? [0.75]: 0" >> $3
+	fi
+fi
+
+timeout $timeout ./hw1 http://images.google.com/intl/en_ALL/images/logos/images_logo_lg.gif >> $2 2>&1
+if [ -f images_logo_lg.gif ]; then
+	echo "[SUCCESS] images_logo_lg.gif created for http://images.google.com/intl/en_ALL/images/logos/images_logo_lg.gif? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else 
+	echo "[FAILED] images_logo_lg.gif created for http://images.google.com/intl/en_ALL/images/logos/images_logo_lg.gif? [0.25]: 0" >> $3	
+fi
+
+timeout $timeout ./hw1 http://pdos.csail.mit.edu/papers/chord:sigcomm01/chord_sigcomm.pdf >> $2 2>&1
+if [ -f chord_sigcomm.pdf ]; then
+	echo "[SUCCESS] chord_sigcomm.pdf created for http://pdos.csail.mit.edu/papers/chord:sigcomm01/chord_sigcomm.pdf? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else 
+	echo "[FAILED] chord_sigcomm.pdf created for http://pdos.csail.mit.edu/papers/chord:sigcomm01/chord_sigcomm.pdf? [0.25]: 0" >> $3
+fi	
+######################################## 
+
+timeout $timeout ./hw1 http://www.google.com/thispagedoesnotexist >> $2 2>&1
+if [ $? != 0 ]; then
+	echo "[SUCCESS] exit with error for http://www.google.com/thispagedoesnotexist? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else
+	echo "[FAILED] exit with error for http://www.google.com/thispagedoesnotexist? [0.25]: 0" >> $3
+fi
+
+timeout $timeout ./hw1 http://www.thissitedoesnotexist1000.com >> $2 2>&1
+if [ $? != 0 ]; then
+	echo "[SUCCESS] exit with error for http://www.thissitedoesnotexist1000.com? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else
+	echo "[FAILED] exit with error for http://www.thissitedoesnotexist1000.com? [0.25]: 0" >> $3
+fi
+
+timeout $timeout ./hw1 http://www.skype.com >> $2 2>&1
+if [ $? != 0 ]; then
+	echo "[SUCCESS] exit with error for http://www.skype.com? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else
+	echo "[FAILED] exit with error for http://www.skype.com? [0.25]: 0" >> $3
+fi
+
+#######################################
+
+s_jpg_orig=32285
+s_gif_orig=8561
+s_pdf_orig=194676
+
+s_jpg=`ls -l a.com_logo_RGB.jpg | awk '{print $5}'`
+s_gif=`ls -l images_logo_lg.gif | awk '{print $5}'`
+s_pdf=`ls -l chord_sigcomm.pdf | awk '{print $5}'`
+if [ "$host" != "" ]; then
+	if [ "$s_jpg_orig" == "$s_jpg" ]; then
+		echo "[SUCCESS] a.com_logo_RGB.jpg size correct? [0.25]: 0.25" >> $3
+		score=`echo $score | awk '{print $1+0.25}'`
+	else
+		echo "[FAILED] a.com_logo_RGB.jpg  size correct? [0.25]: 0" >> $3
+	fi
+fi
+
+if [ "$s_gif_orig" == "$s_gif" ]; then
+	echo "[SUCCESS] images_logo_lg.gif size correct? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else
+	echo "[FAILED] images_logo_lg.gif size correct? [0.25]: 0" >> $3
+fi
+
+if [ "$s_pdf_orig" == "$s_pdf" ]; then
+	echo "[SUCCESS] chord_sigcomm.pdf size correct? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else
+	echo "[FAILED] chord_sigcomm.pdf size correct? [0.25]: 0" >> $3
+fi
+
+######################################
+
+md5_jpg_orig=4526a95df1c8a9004ff9bb448a115d5a
+md5_gif_orig=6a5b12e3e227e4ca8afb2de89a416f2e
+md5_pdf_orig=8295cca3adb4ee32140b4b26df1ae0ff
+	
+md5_jpg=`md5sum a.com_logo_RGB.jpg | awk '{print $1}'`
+md5_gif=`md5sum images_logo_lg.gif | awk '{print $1}'`
+md5_pdf=`md5sum chord_sigcomm.pdf | awk '{print $1}'`
+if [ "$host" != "" ]; then
+	if [ "$md5_jpg_orig" == "$md5_jpg" ]; then
+		echo "[SUCCESS] a.com_log_RGB.jpg content correct? [0.25]: 0.25" >> $3
+		score=`echo $score | awk '{print $1+0.25}'`
+	else
+		echo "[FAILED] a.com_log_RGB.jpg content correct? [0.25]: 0" >> $3
+	fi
+fi
+
+if [ "$md5_gif_orig" == "$md5_gif" ]; then
+	echo "[SUCCESS] images_logo_lg.gif content correct? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else
+	echo "[FAILED] images_logo_lg.gif content correct? [0.25]: 0" >> $3
+fi
+
+if [ "$md5_pdf_orig" == "$md5_pdf" ]; then
+	echo "[SUCCESS] chord_sigcomm.pdf content correct? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else
+	echo "[FAILED] chord_sigcomm.pdf content correct? [0.25]: 0" >> $3
+fi
+
+########################################
+
+timeout $timeout ./hw1 http://www.amazon.com/dp/B007HCCNJU >> $2 2>&1
+if [ -f B007HCCNJU ]; then
+    echo "[SUCCESS] B007HCCNJU created for http://www.amazon.com/dp/B007HCCNJU? [0.25]: 0.25" >> $3
+    score=`echo $score | awk '{print $1+0.25}'`
+else
+    echo "[FAILED] B007HCCNJU created for http://www.amazon.com/dp/B007HCCNJU? [0.25]: 0" >> $3
+fi
+rm index.html
+
+timeout $timeout ./hw1 http://www.amazon.com/dp/B007HCCNJU/  >> $2 2>&1
+if [ -f index.html ]; then
+    echo "[SUCCESS] index.html created for http://www.amazon.com/dp/B007HCCNJU/? [0.25]: 0.25" >> $3
+    score=`echo $score | awk '{print $1+0.25}'`
+else
+    echo "[FAILED] index.html created for http://www.amazon.com/dp/B007HCCNJU?/? [0.25]: 0" >> $3
+fi
+rm index.html		
+	
+timeout $timeout ./hw1 http://www.adorama.com/alc/0012691/article/Lenses-Product-Reviews-AdoramaTV >> $2 2>&1
+if [ "$host" != "" ]; then
+	if [ -f Lenses-Product-Reviews-AdoramaTV ]; then
+		echo "[SUCCESS] Lenses-Product-Reviews-AdoramaTV created for http://www.adorama.com/alc/0012691/article/Lenses-Product-Reviews-AdoramaTV? [0.25]: 0.25" >> $3
+		score=`echo $score | awk '{print $1+0.25}'`
+	else 
+		echo "[FAILED] Lenses-Product-Reviews-AdoramaTV created for http://www.adorama.com/alc/0012691/article/Lenses-Product-Reviews-AdoramaTV? [0.25]: 0" >> $3
+	fi
+else
+	if [ $? > 0 ]; then
+		echo "[SUCCESS] exit with http://www.adorama.com/alc/0012691/article/Lenses-Product-Reviews-AdoramaTV? [0.25]: 0.25" >> $3
+		score=`echo $score | awk '{print $1+0.25}'`
+	else
+		echo "[FAILED] exit with http://www.adorama.com/alc/0012691/article/Lenses-Product-Reviews-AdoramaTV? [0.25]: 0" >> $3
+	fi
+fi
+
+########################################
+echo "Parameter: $parameter" >> $3
+echo "Earned score: $score" >> $3
+t_score=`expr "$parameter * $score"|bc`
+echo "Total score: $t_score" >> $3
+
+#############
+#git add $3
+#git commit -a -m"added grading_result.txt"
+#git push
+#echo $1 $t_score >> $collecting	

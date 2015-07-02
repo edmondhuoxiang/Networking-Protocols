@@ -1,0 +1,185 @@
+#!/bin/bash
+
+usage="Usage: hw6_score <username> <base port> <score file> [time]"
+email_address="<huoxiang5659@gmail.com>"
+if [ $# -lt 3 ]; then
+	echo $usage
+	exit 1
+fi
+
+time=${4:-"HEAD"}
+
+score=0
+rm -rf $1
+git clone git@git.uicbits.net:cs450-f13/$1
+cd $1
+cd hw6
+git push origin --delete grading_hw6
+rm $3
+cp ../../1000lines .
+cp ../../kill_controller .
+cp ../../kill_sender .
+cp ../../kill_receiver .
+cp ../../rel_tcp.py .
+
+make clean
+make
+collecting="/home/ubuntu/grading_hw6.txt"
+###########################################
+#Verify signature
+
+REPLY=`git show 201311081500_hw6 | tr " " "\n"`
+email=$(echo $REPLY | cut -f6 -d " ")
+factor=0
+if [ "$REPLY" != "" ]; then
+	if [ "$email" != "$email_address" ]; then
+		echo "[FAILED] Verify signature? [0]:0" >> $3
+		echo "Aborting program testing as unverified signature" >> $3
+		echo "Total score: 0" >> $3
+		exit 0
+	fi
+	DIFF=`git diff 201311081500_hw6 -- *.c`
+	if [ "$DIFF" == "" ]; then
+		factor=1.1
+		echo "No change after tag 201311081500_hw6 on source file"
+		echo "Set factor as "$factor
+	fi
+fi
+
+if [ "$factor" == 0 ]; then
+	REPLY=`git show 201311091500_hw6 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d " ")
+	factor=0
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then
+			echo "[FAILED] Verify signature?[0]:0" >> $3
+			echo "Aborting program testing as unverified signature" >> $3
+			echo "Total score: 0" >> $3
+			exit 0
+		fi
+		DIFF=`git diff 201311091500_hw6 -- *.c`
+		if [ "$DIFF" == "" ]; then
+			factor=1.0
+			echo "No change after tag 201311091500_hw6 on source file"
+			echo "Set factor as "$factor
+		fi
+	fi
+fi
+
+
+if [ "$factor" == 0 ]; then
+	REPLY=`git show 201311100300_hw6 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d " ")
+	factor=0
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then
+			echo "[FAILED] Verify signature?[0]:0" >> $3
+			echo "Aborting program testing as unverified signature" >> $3
+			echo "Total score: 0" >> $3
+			exit 0
+		fi
+		DIFF=`git diff 201311100300_hw6 -- *.c`
+		if [ "$DIFF" == "" ]; then
+			factor=0.9
+			echo "No change after tag 201311100300_hw6 on source file"
+			echo "Set factor as "$factor
+		fi
+	fi
+fi
+if [ "$factor" == 0 ]; then
+	REPLY=`git show 201311101500_hw6 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d " ")
+	factor=0
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then
+			echo "[FAILED] Verify signature?[0]:0" >> $3
+			echo "Aborting program testing as unverified signature" >> $3
+			echo "Total score: 0" >> $3
+			exit 0
+		fi
+		DIFF=`git diff 201311101500_hw6 -- *.c`
+		if [ "$DIFF" == "" ]; then
+			factor=0.75
+			echo "No change after tag 201311101500_hw6 on source file"
+			echo "Set factor as "$factor
+		fi
+	fi
+fi
+
+if [ "$factor" == 0 ]; then
+	REPLY=`git show 201311111500_hw6 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d " ")
+	factor=0
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then
+			echo "[FAILED] Verify signature?[0]:0" >> $3
+			echo "Aborting program testing as unverified signature" >> $3
+			echo "Total score: 0" >> $3
+			exit 0
+		fi
+		DIFF=`git diff 201311111500_hw6 -- *.c`
+		if [ "$DIFF" == "" ]; then
+			factor=0.5
+			echo "No change after tag 201311111500_hw6 on source file"
+			echo "Set factor as "$factor
+		fi
+	fi
+fi
+
+############################################
+delay=(1000 100 10 100 10 10)
+loss=(0 0 0 5 5 10)
+tput=(0.15 2.1 15 0.8 3.5 0.5) #acceptable lower limit of throughput in kB/s
+timeout=(500 50 10 50 15 50) #timeout is approx. 50% more than corresponding lower limit of throughput
+
+file="1000lines"
+md5_orig=187323fe69aa075411d75dd0849f8263
+
+#file="landscape.jpg"
+#md5_orig=014519a8f2fa487b418fdd3a8eeb4f26
+
+sudo rm RECVD_FILE*
+
+#for i in 0; do
+for i in 0 1 2 3 4 5; do
+	echo "test case $i"
+	base_port=$(($2+$i*4))
+	timeout=${timeout[$i]}
+
+	sudo rm sender_output
+	echo "timeout is $timeout"
+	sudo timeout $timeout ./rel_tcp.py --loss ${loss[$i]} --delay ${delay[$i]} --case $i
+	sleep 30
+	
+	md5_recv=`md5sum "RECVD_FILE_$i" | awk '{print $1}'`
+	echo $md5_recv
+
+	throughput=`cat sender_output | grep -i "KB/s" | awk '{print $(NF-1)}'`
+	
+	if [ "$md5_recv" == "$md5_orig" ]; then
+		tput_ok=`echo $throughput ${tput[$i]} | awk '{if($1>=$2) {print 1} else {print 0}}'`
+		if [ "$tput_ok" -eq "1" ]; then
+			echo "[SUCCESS] latency=${delay[$i]}ms packet loss=${loss[$i]}% [1]: 1 [throughput (kB/s)=$throughput]" >> $3
+			score=`echo $score | awk '{print $1+1}'`
+		else
+			echo "[PARTIAL] latency=${delay[$i]}ms packet loss=${loss[$i]}% [1]: 0.5 [throughput (kB/s)=$throughput, lower than ${tput[$i]}]" >> $3
+			score=`echo $score | awk '{print $1+0.5}'`
+		fi
+	else
+		echo "[FAILED] latency=${delay[$i]}ms packet loss=${loss[$i]}% [1]: 0 [invalid content]" >> $3
+	fi
+	./kill_controller
+	./kill_sender
+	./kill_receiver
+done
+############################################
+echo "Factor: $factor" >> $3
+echo "Earned score: $score" >> $3
+t_score=`expr "$factor * $score"|bc`
+echo "Total score: $t_score" >> $3
+
+echo $1 $t_score >> $collecting
+git checkout -b grading_hw6
+git add $3
+git commit -a -m "added grading_hw6.txt on branch grading_hw6"
+git push -u origin grading_hw6

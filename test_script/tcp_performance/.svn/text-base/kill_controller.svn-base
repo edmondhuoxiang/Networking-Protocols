@@ -1,0 +1,6 @@
+#! /bin/bash
+
+for pid in $(pgrep 'controller')
+do
+	sudo kill -9 $pid
+done

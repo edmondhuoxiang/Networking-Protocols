@@ -1,0 +1,343 @@
+#!/bin/bash
+
+usage="Usage: hw4_score <username> <score file>"
+email_address="<huoxiang5659@gmail.com>"
+
+if [ $# != 2 ]; then
+	echo $usage
+	exit 1
+fi
+
+score=0
+rm -rf $1
+git clone git@git.uicbits.net:cs450-f13/$1
+cd $1
+cd hw4
+rm $2
+rm hw4
+make
+collecting="/home/edmondhuo/grading_hw4.txt"
+
+################################
+#verify signature
+
+REPLY=`git show 201310041500_hw4 | tr " " "\n"`
+email=$(echo $REPLY | cut -f6 -d " ")
+factor=0
+if [ "$REPLY" != "" ]; then
+	if [ "$email" != "$email_address" ]; then
+		echo "[FAILED] Verify signature? [0]:0" >> $2
+		echo "Aborting program testing as unverified signature" >> $2
+		echo "Total score: 0" >> $2
+		exit 0
+	fi
+	DIFF=`git diff 201310041500_hw4 -- *.c`
+	if [ "$DIFF" == "" ];then
+		factor=1.0
+		echo "No changes after tag 201310041500_hw4 on source file"
+		echo "Set factor as "$factor
+	fi
+fi
+
+if [ "$factor" == 0 ]; then
+	REPLY=`git show 201310050300_hw4 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d " ")
+	factor=0
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then
+			echo "[FAILED] Verify signature? [0]:0" >> $2
+			echo "Aborting program testing as unverified signature" >> $2
+			echo "Total score: 0" >> $2
+			exit 0
+		fi
+		DIFF=`git diff 201310050300_hw4 -- *.c`
+		if [ "$DIFF" == "" ];then
+			factor=0.9
+			echo "No changes after tag 201310050300_hw4 on source file"
+			echo "Set factor as "$factor
+		fi
+	fi
+fi
+
+if [ "$factor" == 0 ]; then
+	REPLY=`git show 201310051500_hw4 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d " ")
+	factor=0
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then
+			echo "[FAILED] Verify signature? [0]:0" >> $2
+			echo "Aborting program testing as unverified signature" >> $2
+			echo "Total score: 0" >> $2
+			exit 0
+		fi
+		DIFF=`git diff 201310051500_hw4 -- *.c`
+		if [ "$DIFF" == "" ];then
+			factor=0.75
+			echo "No changes after tag 201310051500_hw4 on source file"
+			echo "Set factor as "$factor
+		fi
+	fi
+fi
+
+if [ "$factor" == 0 ]; then
+	REPLY=`git show 201310061500_hw4 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d " ")
+	factor=0
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then
+			echo "[FAILED] Verify signature? [0]:0" >> $2
+			echo "Aborting program testing as unverified signature" >> $2
+			echo "Total score: 0" >> $2
+			exit 0
+		fi
+		DIFF=`git 201310061500_hw4 -- *.c`
+		if [ "$DIFF" == "" ];then
+			factor=0.5
+			echo "No changes after tag 201310061500_hw4 on source file"
+			echo "Set factor as "$factor
+		fi
+	fi
+fi
+
+################################
+
+sudo ./hw4 53 &
+
+sleep 1
+
+response=`dig @localhost www.google.com`
+stat=`echo ${response#*\, status:} | awk -F"," '{print $1}'`
+if [ "$stat" == "NOERROR"  ]; then
+	echo "[SUCCESS] resolve www.google.com? [0.5]: 0.5" >> $2
+	score=`echo $score | awk '{print $1+0.5}'`
+else
+	echo "[FAILED] resolve www.google.com? [0.5]: 0" >> $2
+fi
+
+pid=`pgrep -f "hw4 53"`
+if [ "$pid" != "" ]; then
+	sudo kill -9 $pid
+fi
+#####################################
+sudo ./hw4 53 &
+sleep 1
+
+response=`dig @localhost www.domain.invalid`
+stat=`echo ${response#*\, status:} | awk -F"," '{print $1}'`
+tmp=`echo ${response#*\AUTHORITY SECTION:}`
+auth_section=`echo ${tmp%\;; Query*} | grep "SOA"`
+
+if [ "$stat" == "NXDOMAIN" ]; then
+	if [ "$auth_section" != "" ]; then
+		echo "[SUCCESS] resolve www.domain.invalid? [0.5]: 0.5" >> $2
+		score=`echo $score | awk '{print $1+0.5}'`
+	else
+		echo "[PARTIAL] resolve www.domain.invalid? [0.5]: 0.25" >> $2
+		score=`echo $score | awk '{print $1+0.25}'`
+	fi
+else
+	if [ "$auth_section" != "" ]; then
+		echo "[PARTIAL] resolve www.domain.invalid? [0.5]: 0.25" >> $2
+		score=`echo $score | awk '{print $1+0.25}'`
+	else
+		echo "[FAILED] resolve www.domain.invalid? [0.5]: 0" >> $2
+	fi
+fi
+
+pid=`pgrep -f "hw4 53"`
+if [ "$pid" != "" ]; then
+	sudo kill -9 $pid
+fi
+
+#####################################
+sudo ./hw4 53 &
+sleep 1
+
+response=`dig @localhost nonexistent.kaytwo.org`
+stat=`echo ${response#*\, status:} | awk -F"," '{print $1}'`
+tmp=`echo ${response#*\AUTHORITY SECTION:}`
+auth_section=`echo ${tmp%\;; Query*} | grep "SOA"`
+
+if [ "$stat" == "NXDOMAIN" ]; then
+	if [ "$auth_section" != "" ]; then
+		echo "[SUCCESS] resolve nonexistent.kaytwo.org? [0.5]: 0.5" >> $2
+		score=`echo $score | awk '{print $1+0.5}'`
+	else
+		echo "[PARTIAL] resolve nonexistent.kaytwo.org? [0.5]: 0.25" >> $2
+		score=`echo $score | awk '{print $1+0.25}'`
+	fi
+else
+	if [ "$auth_section" != "" ]; then
+		echo "[PARTIAL] resolve nonexistent.kaytwo.org? [0.5]: 0.25" >> $2
+		score=`echo $score | awk '{print $1+0.25}'`
+	else
+		echo "[FAILED] resolve nonexistent.kaytwo.org? [0.5]: 0" >> $2
+	fi
+fi
+
+pid=`pgrep -f "hw4 53"`
+if [ "$pid" != "" ]; then
+	sudo kill -9 $pid
+fi
+
+#####################################
+sudo ./hw4 53 &
+sleep 1
+
+response=`dig @localhost ds.v6ns.test-ipv6.com`
+stat=`echo ${response#*\, status:} | awk -F"," '{print $1}'`
+tmp=`echo ${response#*\ANSWER SECTION:}`
+answer_section=`echo ${tmp%\;; Query*}`
+ipv4=`echo $answer_section | grep "216.218.228.119"`
+ipv6=`echo $answer_section | grep "2001:470:1:18::119"`
+if [ "$ipv4"  != ""  ]; then
+	echo "[SUCCESS] resolve ds.v6ns.test-ipv6.com in ipv4? [0.5]: 0.5" >> $2
+	score=`echo $score | awk '{print $1+0.5}'`
+else
+	echo "[FAILED] resolve ds.v6ns.test-ipv6.com in ipv4? [0.5]: 0" >> $2
+fi
+if [ "$ipv6"  != ""  ]; then
+	echo "[SUCCESS] resolve ds.v6ns.test-ipv6.com in ipv6? [0.5]: 0.5" >> $2
+	score=`echo $score | awk '{print $1+0.5}'`
+else
+	echo "[FAILED] resolve ds.v6ns.test-ipv6.com in ipv6? [0.5]: 0" >> $2
+fi
+
+
+pid=`pgrep -f "hw4 53"`
+if [ "$pid" != "" ]; then
+	sudo kill -9 $pid
+fi
+
+#####################################
+sudo ./hw4 53 &
+sleep 1
+
+response=`dig @localhost ipv6.google.com`
+stat=`echo ${response#*\, status:} | awk -F"," '{print $1}'`
+tmp=`echo ${response#*\ANSWER SECTION:}`
+answer_section=`echo ${tmp%\;; Query*}`
+cname=`echo $answer_section | grep "CNAME ipv6.l.google.com."`
+soa1=`echo $answer_section | grep "SOA"`
+soa2=`echo $answer_section | grep "google.com. dns-admin.google.com."`
+if [ "$cname"  != ""  ]; then
+	echo "[SUCCESS] get CNAME record when resolve ipv6.google.com? [0.5]: 0.5" >> $2
+	score=`echo $score | awk '{print $1+0.5}'`
+else
+	echo "[FAILED] get CNAME record when resolve ipv6.google.com?[0.5]: 0" >> $2
+fi
+if [ "$soa1"  != ""  ] && [ "$soa2" != "" ]; then
+	echo "[SUCCESS] get SOA record when resolve ipv6.google.com? [0.5]: 0.5" >> $2
+	score=`echo $score | awk '{print $1+0.5}'`
+else
+	echo "[FAILED] get SOA record when resolve ipv6.google.com? [0.5]: 0" >> $2
+fi
+
+
+pid=`pgrep -f "hw4 53"`
+if [ "$pid" != "" ]; then
+	sudo kill -9 $pid
+fi
+#####################################
+sudo ./hw4 53 &
+sleep 1
+
+response=`dig @localhost www.cs.uic.edu`
+stat=`echo ${response#*\, status:} | awk -F"," '{print $1}'`
+tmp=`echo ${response#*\ANSWER SECTION:}`
+answer_section=`echo ${tmp%\;; Query*}`
+ip=`echo $answer_section | grep "131.193.32.29"`
+if [ "$ip"  != ""  ]; then
+	echo "[SUCCESS] resolve www.cs.uic.edu? [0.5]: 0.5" >> $2
+	score=`echo $score | awk '{print $1+0.5}'`
+else
+	echo "[FAILED] resolve www.cs.uic.edu? [0.5]: 0" >> $2
+fi
+
+pid=`pgrep -f "hw4 53"`
+if [ "$pid" != "" ]; then
+	sudo kill -9 $pid
+fi
+
+#####################################
+sudo ./hw4 53 &
+sleep 1
+
+response=`dig @localhost www.uic.edu`
+stat=`echo ${response#*\, status:} | awk -F"," '{print $1}'`
+tmp=`echo ${response#*\ANSWER SECTION:}`
+answer_section=`echo ${tmp%\;; Query*}`
+cname=`echo $answer_section | grep "CNAME www-proxy-1.cc.uic.edu."`
+ip=`echo $answer_section | grep "A 128.248.156.31"`
+if [ "$cname"  != ""  ]; then
+	echo "[SUCCESS] get CNAME record when resolve www.uic.edu? [0.5]: 0.5" >> $2
+	score=`echo $score | awk '{print $1+0.5}'`
+else
+	echo "[FAILED] get CNAME record when resolve www.uic.edu? [0.5]: 0" >> $2
+fi
+if [ "$ip" != "" ]; then
+	echo "[SUCCESS] resolve www.uic.edu? [0.5]: 0.5" >> $2
+	score=`echo $score | awk '{print $1+0.5}'`
+else
+	echo "[FAILED] resolve www.uic.edu? [0.5]: 0" >> $2
+fi
+
+pid=`pgrep -f "hw4 53"`
+if [ "$pid" != "" ]; then
+	sudo kill -9 $pid
+fi
+
+#####################################
+sudo ./hw4 53 &
+sleep 1
+
+response=`dig @localhost www.yahoo.com.tw`
+stat=`echo ${response#*\, status:} | awk -F"," '{print $1}'`
+tmp=`echo ${response#*\ANSWER SECTION:}`
+answer_section=`echo ${tmp%\;; Query*}`
+ip=`echo $answer_section | grep "98.139.102.145"`
+if [ "$ip"  != ""  ]; then
+	echo "[SUCCESS] resolve www.yahoo.com.tw? [0.5]: 0.5" >> $2
+	score=`echo $score | awk '{print $1+0.5}'`
+else
+	echo "[FAILED] resolve www.yahoo.com.tw? [0.5]: 0" >> $2
+fi
+
+pid=`pgrep -f "hw4 53"`
+if [ "$pid" != "" ]; then
+	sudo kill -9 $pid
+fi
+
+#####################################
+sudo ./hw4 53 &
+sleep 1
+
+response=`dig @localhost nibbles.cs.uic.edu`
+stat=`echo ${response#*\, status:} | awk -F"," '{print $1}'`
+tmp=`echo ${response#*\ANSWER SECTION:}`
+answer_section=`echo ${tmp%\;; Query*}`
+ip=`echo $answer_section | grep "131.193.34.150"`
+if [ "$ip"  != ""  ]; then
+	echo "[SUCCESS] resolve nibbles.cs.uic.edu? [0.5]: 0.5" >> $2
+	score=`echo $score | awk '{print $1+0.5}'`
+else
+	echo "[FAILED] resolve nibbles.cs.uic.edu? [0.5]: 0" >> $2
+fi
+
+pid=`pgrep -f "hw4 53"`
+if [ "$pid" != "" ]; then
+	sudo kill -9 $pid
+fi
+
+####################################
+
+echo "Factor: $factor" >> $2
+echo "Earned score: $score" >> $2
+t_score=`expr "$factor * $score"|bc`
+echo "Total score: $t_score" >> $2
+
+echo $1 $t_score >> $collecting
+git checkout -b grading_hw4
+git add $2
+git commit -a -m "added grading_hw3.txt on branch grading_hw4"
+git push -u origin grading_hw4

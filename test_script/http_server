@@ -1,0 +1,270 @@
+#!/bin/bash
+
+usage="Usage: hw2_score <username> <port> <score file>"
+email_address="<huoxiang5659@gmail.com>"
+if [ $# != 3 ]; then
+		echo $usage
+		exit 1
+fi
+
+score=0
+rm -rf $1
+git clone git@git.uicbits.net:cs450-f13/$1
+cd $1
+cd hw2
+rm $3
+make clean
+make
+
+collecting="/home/edmondhuo/Grading_hw2.txt"
+
+########################################
+#verify signature
+
+REPLY=`git show 201309131500_hw2 | tr " " "\n"`
+email=$(echo $REPLY | cut -f6 -d" ")
+factor=0
+if [ "$REPLY" != "" ]; then
+	if [ "$email" != "$email_address" ];then
+		echo "[FAILED] Verify signature? [0]:0" >> $3
+		echo "Aborting program testing as unverified signature" >> $3
+		echo "Total score: 0" >> $3
+		exit 0
+	fi
+	DIFF=`git diff 201309131500_hw2 -- *.c`
+	if [ "$DIFF" == "" ];then
+		factor=1.0
+		echo "No changes after tag 201309131500_hw1 on source file"
+		echo "Set factor as "$factor
+	fi
+fi
+
+if [ "$factor" == 0 ]; then
+	REPLY=`git show 201309140300_hw2 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d " ")
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then
+			echo "[FAILED] Verify signature? [0]:0" >> $3
+			echo "Aborting program testing as unverified signature" >> $3
+			echo "Total score: 0" >> $3
+			exit 0
+		fi
+		DIFF=`git diff 201309140300_hw2 -- *.c`
+		if [ "$DIFF" == "" ]; then
+			factor=0.9
+			echo "No changes after tag 201309140300_hw2 on source file"
+			echo "Set factor as "$factor
+		fi
+	fi
+fi
+
+
+if [ "$factor" == 0 ]; then
+	REPLY=`git show 201309141500_hw2 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d " ")
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then
+			echo "[FAILED] Verify signature? [0]:0" >> $3
+			echo "Aborting program testing as unverified signature" >> $3
+			echo "Total score: 0" >> $3
+			exit 0
+		fi
+		DIFF=`git diff 201309141500_hw2 -- *.c`
+		if [ "$DIFF" == "" ]; then
+			factor=0.75
+			echo "No changes after tag 201309141500_hw2 on source file"
+			echo "Set factor as "$factor
+		fi
+	fi
+fi
+
+if [ "$factor" == 0 ]; then
+	REPLY=`git show 201309151500_hw2 | tr " " "\n"`
+	email=$(echo $REPLY | cut -f6 -d " ")
+	if [ "$REPLY" != "" ]; then
+		if [ "$email" != "$email_address" ]; then
+			echo "[FAILED] Verify signature? [0]:0" >> $3
+			echo "Aborting program testing as unverified signature" >> $3
+			echo "Total score: 0" >> $3
+			exit 0
+		fi
+		DIFF=`git diff 201309151500_hw2 -- *.c`
+		if [ "$DIFF" == "" ]; then
+			factor=0.5
+			echo "No changes after tag 201309151500_hw2 on source file"
+			echo "Set factor as "$factor
+		fi
+	fi
+fi
+######################################## 
+
+
+./hw2 $2 WWW &
+
+sleep 2
+
+wget -S localhost:$2 -o wget_log
+if [ -f index.html ]; then
+	echo "[SUCCESS] index.html created for host:port? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else
+	echo "[FAILED] index.html created for host:port? [0.25]: 0" >> $3
+fi
+content=`cat wget_log | grep "Content-Type"`
+header=`echo $content | awk '{print $2}'`
+header2=${content##*Content-Type:}
+if [ "$header" == "text/html" ] || [ "$header2" == "text/html" ]; then
+	echo "[SUCCESS] header correct for host:port? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else
+	echo "[FAILED] header correct for host:port? [0.25]: 0" >> $3
+fi
+
+wget -S http://localhost:$2/pic.html -o wget_log
+if [ -f pic.html ]; then
+	echo "[SUCCESS] pic.html created for host:port/pic.html? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else 
+	echo "[FAILED] pic.html created for host:port/pic.html? [0.25]: 0" >> $3
+fi
+
+wget -S http://localhost:$2/monorail.jpg -o wget_log
+if [ -f monorail.jpg ]; then
+	echo "[SUCCESS] monorail.jpg created for host:port/monorail.jpg? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else 
+	echo "[FAILED] monorail.jpg created for host:port/monorail.jpg? [0.25]: 0" >> $3
+fi
+
+
+wget -S http://localhost:$2/google.gif -o wget_log
+if [ -f google.gif ]; then
+	echo "[SUCCESS] google.gif created for host:port/google.gif? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else 
+	echo "[FAILED] google.gif created for host:port/google.gif? [0.25]: 0" >> $3
+fi
+
+content=`cat wget_log | grep "Content-Type"`
+header=`echo $content | awk '{print $2}'`
+header2=${content##*Content-Type:}
+#header=`cat wget_log | grep "Content-Type" | awk '{print $2}'`
+if [ "$header" == "image/gif" ] || [ "$header2" == "image/gif" ]; then
+	echo "[SUCCESS] header correct for host:port/google.gif? [0.25] [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else
+	echo "[FAILED] header correct for host:port/google.gif? [0.25]: 0" >> $3
+fi
+
+wget -S http://localhost:$2/skype.png -o wget_log
+if [ -f skype.png ]; then
+	echo "[SUCCESS] skype.png created for host:port/skype.png? [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else 
+	echo "[FAILED] skype.png created for host:port/skype.png? [0.25]: 0" >> $3
+fi
+
+content=`cat wget_log | grep "Content-Type"`
+header=`echo $content | awk '{print $2}'`
+header2=${content##*Content-Type:}
+#header=`cat wget_log | grep "Content-Type" | awk '{print $2}'`
+if [ "$header" == "image/png" ] || [ "$header2" == "image/png" ]; then
+	echo "[SUCCESS] header correct for host:port/skype.png? [0.25] [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else
+	echo "[FAILED] header correct for host:port/skype.png? [0.25]: 0" >> $3
+fi
+
+wget -S http://localhost:$2/paper.pdf -o wget_log
+if [ -f paper.pdf ]; then
+	echo "[SUCCESS] paper.pdf created for host:port/paper.pdf [0.25]: 0.25" >> $3
+	score=`echo $score | awk '{print $1+0.25}'`
+else 
+	echo "[FAILED] paper.pdf created for host:port/paper.pdf? [0.25]: 0" >> $3
+fi
+
+############################################################
+
+
+md5_png_orig=7256c5d912da130063ebddbd46ee8e9c
+md5_pdf_orig=b448130e2e296d2ba1f459bccfa852d6
+
+	md5_png=`md5sum skype.png | awk '{print $1}'`
+	md5_pdf=`md5sum paper.pdf | awk '{print $1}'`
+	if [ "$md5_png_orig" == "$md5_png" ]; then
+		echo "[SUCCESS] skype.png content correct? [0.25]: 0.25" >> $3
+		score=`echo $score | awk '{print $1+0.25}'`
+	else
+		echo "[FAILED] skype.png content correct? [0.25]: 0" >> $3
+	fi
+	if [ "$md5_pdf_orig" == "$md5_pdf" ]; then
+		echo "[SUCCESS] paper.pdf content correct? [0.5]: 0.5" >> $3
+		score=`echo $score | awk '{print $1+0.5}'`
+	else
+		echo "[FAILED] paper.pdf content correct? [0.5]: 0" >> $3
+	fi
+
+
+##########################################################
+rm index.html
+wget -S http://localhost:$2/test/dir/ -o wget_log
+if [ -f index.html ]; then
+	echo "[SUCCESS] index.html created for host:port/test/dir/? [0.5]: 0.5" >> $3
+	score=`echo $score | awk '{print $1+0.5}'`
+else 
+	echo "[FAILED] index.html created for host:port/test/dir/? [0.5]: 0" >> $3
+fi
+wget -S http://localhost:$2/test/dir/testpage.html -o wget_log
+if [ -f testpage.html ]; then
+	echo "[SUCCESS] testpage.html created for host:port/test/dir/testpage.html? [0.5]: 0.5" >> $3
+	score=`echo $score | awk '{print $1+0.5}'`
+else 
+	echo "[FAILED] testpage.html created for host:port/test/dir/testpage.html? [0.5]: 0" >> $3
+fi
+
+##########################################################
+
+wget -S http://localhost:$2/nonexistingpage.html -o wget_log
+error_no=`cat wget_log | grep 404`
+if [ "$error_no" != "" ]; then
+	echo "[SUCCESS] error returned for non-existing page [1]: 1" >> $3
+	score=`echo $score | awk '{print $1+1}'`
+else
+	echo "[FAILED] error returned for non-existing page? [1]: 0" >> $3
+fi
+
+##########################################################
+
+(sleep 10; echo -e -n "GET / HTTP/1.0\r\n\r\n" ) | nc 127.0.0.1 $2 &
+rm index.html
+sleep 1
+wget --timeout=2 --tries=1 -S http://localhost:$2/ -o wget_log
+if [ -f index.html ]; then
+	echo "[SUCCESS] fetched index.html when another request was in progress [1]: 1" >> $3
+	score=`echo $score | awk '{print $1+1}'`
+else
+	echo "[FAILED] timed out fetching index.html when another request was in progress [1]: 0" >> $3
+fi
+pid=`pgrep -f "nc 127.0.0.1 $2"`
+if [ "$pid" != "" ]; then 
+	kill -9 $pid
+fi
+
+##########################################################
+
+pid=`pgrep -f "hw2 $2"`
+if [ "$pid" != "" ]; then  
+	kill -9 $pid
+fi
+
+##########################################################
+echo "Factor: $factor" >> $3
+echo "Earned score: $score" >> $3
+t_score=`expr "$factor * $score"|bc`
+echo "Total score: $t_score" >> $3
+
+echo $1 $t_score >> $collecting
+git chechout -b grading_hw3
+git add $2
+git commit -a -m "added grading_result.txt on new branch greading_hw3"
+git push -u origin grading_hw3

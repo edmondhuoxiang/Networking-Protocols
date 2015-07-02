@@ -1,0 +1,10 @@
+#! /bin/bash
+res=`pgrep 'hw6_receiver'`
+echo $res
+arr=($res)
+declare -f arr
+for pid in ${arr[@]}
+do
+	echo $pid
+	sudo kill -9 $pid
+done
